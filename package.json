@@ -1,0 +1,25 @@
+{
+  "name": "@jasonish/pi-sandbox",
+  "version": "0.1.2",
+  "description": "My sandbox for the shitty coding agent.",
+  "license": "MIT",
+  "author": "Jason Ish",
+  "type": "module",
+  "files": [
+    "index.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

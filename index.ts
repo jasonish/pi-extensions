@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 import { spawnSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import {
@@ -33,16 +32,6 @@ import {
  */
 
 type SandboxMode = "read-only" | "read-write" | "yolo";
-
-const AUDIT_LOG = joinPath(homedir(), ".pi", "agent", "pi-sandbox.log");
-
-function log(line: string) {
-  try {
-    appendFileSync(AUDIT_LOG, `${new Date().toISOString()} ${line}\n`);
-  } catch {
-    // ignore logging failures
-  }
-}
 
 function normalizeMode(
   input: string | undefined | null,
@@ -269,10 +258,6 @@ export default function (pi: ExtensionAPI) {
         } catch {
           // ignore git detection failures
         }
-
-        log(
-          `[init] rootDir=${rootDirReal} mode=${mode} bwrap=${bwrapPath ?? "missing"} gitDir=${gitDirReal ?? "-"} gitCommonDir=${gitCommonDirReal ?? "-"} extraWritable=${extraWritableDirs.join(",") || "-"}`,
-        );
       })();
     }
     await rootInit;
@@ -307,14 +292,12 @@ export default function (pi: ExtensionAPI) {
 
   function setMode(next: SandboxMode, ctx?: ExtensionContext) {
     mode = next;
-    log(`[mode] set to ${mode}`);
     updateActiveToolsForMode();
     if (ctx) updateUI(ctx);
   }
 
   function buildWriteAccessLines(): string[] {
     // What the *agent tools* are allowed to write.
-    // (The extension itself may still write its own audit log.)
     switch (mode) {
       case "read-only":
         return ["- none (read-only mode)"];
@@ -440,7 +423,6 @@ export default function (pi: ExtensionAPI) {
 
     if (isToolCallEventType("write", event)) {
       if (mode === "read-only") {
-        log(`[write] BLOCK (mode=${mode}) path=${event.input.path}`);
         return {
           block: true,
           reason: "pi-sandbox is in read-only mode (write blocked).",
@@ -450,10 +432,6 @@ export default function (pi: ExtensionAPI) {
       const abs = resolve(ctx.cwd, expandUserPath(event.input.path));
       const canon = await canonicalizePossiblyMissingPath(abs);
       const allowed = isPathInsideRoot(rootDirReal, canon);
-
-      log(
-        `[write] ${allowed ? "ALLOW" : "BLOCK"} (mode=${mode}) path=${event.input.path} resolved=${canon}`,
-      );
 
       if (!allowed) {
         return {
@@ -465,7 +443,6 @@ export default function (pi: ExtensionAPI) {
 
     if (isToolCallEventType("edit", event)) {
       if (mode === "read-only") {
-        log(`[edit] BLOCK (mode=${mode}) path=${event.input.path}`);
         return {
           block: true,
           reason: "pi-sandbox is in read-only mode (edit blocked).",
@@ -475,10 +452,6 @@ export default function (pi: ExtensionAPI) {
       const abs = resolve(ctx.cwd, expandUserPath(event.input.path));
       const canon = await canonicalizePossiblyMissingPath(abs);
       const allowed = isPathInsideRoot(rootDirReal, canon);
-
-      log(
-        `[edit] ${allowed ? "ALLOW" : "BLOCK"} (mode=${mode}) path=${event.input.path} resolved=${canon}`,
-      );
 
       if (!allowed) {
         return {
@@ -552,7 +525,7 @@ export default function (pi: ExtensionAPI) {
     return args.map((a) => shellEscapeSingle(a)).join(" ");
   }
 
-  // Wrap bash: audit + sandbox via bwrap.
+  // Wrap bash with sandboxing via bwrap.
   // We override the built-in bash tool (same name).
   const baseBash = createBashTool(process.cwd());
   pi.registerTool({
@@ -560,7 +533,6 @@ export default function (pi: ExtensionAPI) {
     label: "bash (sandboxed)",
     async execute(toolCallId, params, signal, onUpdate, ctx) {
       await ensureRoot(ctx);
-      log(`[bash] (mode=${mode}) ${params.command.replace(/\n/g, "\\n")}`);
 
       if (mode !== "yolo") {
         if (!bwrapPath) {
@@ -578,7 +550,6 @@ export default function (pi: ExtensionAPI) {
         }
 
         const wrapped = buildBwrapCommand(params.command, ctx);
-        log(`[bash] wrapped=${wrapped.replace(/\n/g, "\\n")}`);
 
         // Delegate to the built-in bash implementation.
         // Use pi's startup cwd (ctx.cwd) to avoid surprises.
