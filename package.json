@@ -1,6 +1,6 @@
 {
   "name": "@jasonish/pi-default-model",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Set a **real** default model",
   "keywords": [
     "pi-package"

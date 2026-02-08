@@ -12,7 +12,6 @@ type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 
 const GLOBAL_SETTINGS_PATH = join(homedir(), ".pi", "agent", "settings.json");
 const PROJECT_SETTINGS_RELATIVE_PATH = ".pi/settings.json";
-const STATUS_KEY = "startup-model";
 
 interface StartupModelConfig {
 	model: string;
@@ -83,15 +82,8 @@ function parseModelSpec(spec: string): { provider: string; modelId: string } | u
 	return { provider: provider.trim(), modelId };
 }
 
-function setStatus(ctx: ExtensionContext, startupModel?: StartupModelConfig): void {
-	if (!startupModel?.model) return ctx.ui.setStatus(STATUS_KEY, undefined);
-	const detail = startupModel.thinkingLevel ? ` (${startupModel.thinkingLevel})` : "";
-	ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("dim", `startup:${startupModel.model}${detail}`));
-}
-
 async function applyStartupModel(pi: ExtensionAPI, ctx: ExtensionContext): Promise<void> {
 	const setting = await getStartupModelSetting(ctx.cwd);
-	setStatus(ctx, setting);
 	if (!setting) return;
 
 	const target = parseModelSpec(setting.model);
@@ -167,7 +159,6 @@ export default function startupModelExtension(pi: ExtensionAPI) {
 				thinkingLevel: pi.getThinkingLevel(),
 			};
 			const path = await setStartupModelSetting(ctx.cwd, "global", startupModel);
-			setStatus(ctx, startupModel);
 			ctx.ui.notify(
 				`Saved startupModel (global) in ${path}: ${startupModel.model} (${startupModel.thinkingLevel ?? "off"})`,
 				"info",
@@ -185,7 +176,6 @@ export default function startupModelExtension(pi: ExtensionAPI) {
 				thinkingLevel: pi.getThinkingLevel(),
 			};
 			const path = await setStartupModelSetting(ctx.cwd, "project", startupModel);
-			setStatus(ctx, startupModel);
 			ctx.ui.notify(
 				`Saved startupModel (project) in ${path}: ${startupModel.model} (${startupModel.thinkingLevel ?? "off"})`,
 				"info",
@@ -203,7 +193,6 @@ export default function startupModelExtension(pi: ExtensionAPI) {
 				thinkingLevel: pi.getThinkingLevel(),
 			};
 			const path = await setStartupModelSetting(ctx.cwd, "project", startupModel);
-			setStatus(ctx, startupModel);
 			ctx.ui.notify(
 				`Saved startupModel (project) in ${path}: ${startupModel.model} (${startupModel.thinkingLevel ?? "off"})`,
 				"info",
@@ -227,7 +216,6 @@ export default function startupModelExtension(pi: ExtensionAPI) {
 			const { scope, action } = parseShowOrClear(args);
 			if (action === "clear") {
 				const path = await setStartupModelSetting(ctx.cwd, scope, undefined);
-				setStatus(ctx, undefined);
 				return ctx.ui.notify(`Cleared startupModel in ${path}`, "info");
 			}
 
