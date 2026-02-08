@@ -4,36 +4,27 @@ A small Pi extension that lets you save your **current model + thinking level** 
 
 On each new session, it reads `startupModel` from settings and applies it automatically.
 
-## Commands
+## Command
 
 ### `/set-default-model`
-Save the currently active model and thinking level to **global** `startupModel`.
+
+Set or clear the saved startup model.
 
 Examples:
 
 ```text
 /set-default-model
+/set-default-model --project
+/set-default-model --clear
+/set-default-model --clear --project
 /set-default-model --help
 ```
 
-### `/set-project-default-model`
-Save the currently active model and thinking level to **project** `startupModel` (`.pi/settings.json`).
+Behavior:
 
-### `/set-default-model-project`
-Alias for `/set-project-default-model`.
-
-### `/startup-model [--global|--project] [show|clear]`
-Inspect or clear the saved startup setting.
-
-Examples:
-
-```text
-/startup-model
-/startup-model --project
-/startup-model clear
-/startup-model --project clear
-/startup-model --help
-```
+- No flags: save current model + thinking level as **global** default.
+- `--project`: save as **project** default in `.pi/settings.json`.
+- `--clear`: remove the saved default (global by default, or project with `--project`).
 
 ## Where it stores settings
 
