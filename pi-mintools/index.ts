@@ -8,6 +8,9 @@
  *
  * Shortcut:
  * - Ctrl+Alt+O toggles Minimal mode <-> Default-style mode
+ *
+ * Flags:
+ * - --mintools-bash=true to opt-in to the pi-mintools bash override
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -103,8 +106,25 @@ function getBuiltInTools(cwd: string) {
 	return tools;
 }
 
+function isTruthyFlag(value: unknown): boolean {
+	if (value === true) return true;
+	if (typeof value === "string") {
+		const normalized = value.trim().toLowerCase();
+		return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+	}
+	return false;
+}
+
 export default function (pi: ExtensionAPI) {
 	let defaultStyleMode = false;
+
+	const BASH_FLAG = "mintools-bash";
+	pi.registerFlag(BASH_FLAG, {
+		description: "Enable pi-mintools bash tool override",
+		type: "boolean",
+		default: false,
+	});
+	const bashToolEnabled = isTruthyFlag(pi.getFlag(`--${BASH_FLAG}`));
 
 	const bashCustomRenderCall = (args: any, theme: any) => {
 		const command = args.command || "...";
@@ -379,7 +399,9 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.registerTool(readTool);
-	pi.registerTool(bashTool);
+	if (bashToolEnabled) {
+		pi.registerTool(bashTool);
+	}
 	pi.registerTool(writeTool);
 	pi.registerTool(editTool);
 	pi.registerTool(findTool);
