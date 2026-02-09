@@ -1,0 +1,28 @@
+{
+  "name": "@jasonish/pi-default-model",
+  "version": "0.1.1",
+  "description": "Set a **real** default model",
+  "keywords": [
+    "pi-package"
+  ],
+  "license": "MIT",
+  "author": "Jason Ish",
+  "type": "module",
+  "files": [
+    "index.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
