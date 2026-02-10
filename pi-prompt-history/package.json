@@ -1,0 +1,27 @@
+{
+  "name": "@jasonish/pi-prompt-history",
+  "version": "0.1.0",
+  "description": "Pi extension: search user prompt history across all sessions with Ctrl+Alt+R",
+  "keywords": [
+    "pi-package"
+  ],
+  "license": "MIT",
+  "author": "Jason Ish",
+  "type": "module",
+  "files": [
+    "index.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
