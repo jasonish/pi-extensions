@@ -17,9 +17,6 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import {
 	createBashTool,
 	createEditTool,
-	createFindTool,
-	createGrepTool,
-	createLsTool,
 	createReadTool,
 	createWriteTool,
 	keyHint,
@@ -74,14 +71,6 @@ function renderOutput(
 	return new Text(`\n${output}`, 0, 0);
 }
 
-function renderCount(result: { content: Array<{ type: string; text?: string }> }, label: string, theme: any): Text {
-	const text = getTextContent(result).trim();
-	if (!text) return new Text("", 0, 0);
-	const count = text.split("\n").filter(Boolean).length;
-	if (count <= 0) return new Text("", 0, 0);
-	return new Text(theme.fg("muted", ` → ${count} ${label}`), 0, 0);
-}
-
 // Cache for built-in tools by cwd
 const toolCache = new Map<string, ReturnType<typeof createBuiltInTools>>();
 
@@ -91,9 +80,6 @@ function createBuiltInTools(cwd: string) {
 		bash: createBashTool(cwd),
 		edit: createEditTool(cwd),
 		write: createWriteTool(cwd),
-		find: createFindTool(cwd),
-		grep: createGrepTool(cwd),
-		ls: createLsTool(cwd),
 	};
 }
 
@@ -208,71 +194,6 @@ export default function (pi: ExtensionAPI) {
 		});
 	};
 
-	const findCustomRenderCall = (args: any, theme: any) => {
-		const pattern = args.pattern || "";
-		const path = shortenPath(args.path || ".");
-		const limit = args.limit;
-
-		let text = `${theme.fg("toolTitle", theme.bold("find"))} ${theme.fg("accent", pattern)}`;
-		text += theme.fg("toolOutput", ` in ${path}`);
-		if (limit !== undefined) {
-			text += theme.fg("toolOutput", ` (limit ${limit})`);
-		}
-
-		return new Text(text, 0, 0);
-	};
-
-	const findCustomRenderResult = (result: any, { expanded }: { expanded: boolean }, theme: any) => {
-		if (!defaultStyleMode && !expanded) {
-			return renderCount(result as any, "files", theme);
-		}
-		return renderOutput(getTextContent(result as any), expanded, theme, { collapsedLines: 20 });
-	};
-
-	const grepCustomRenderCall = (args: any, theme: any) => {
-		const pattern = args.pattern || "";
-		const path = shortenPath(args.path || ".");
-		const glob = args.glob;
-		const limit = args.limit;
-
-		let text = `${theme.fg("toolTitle", theme.bold("grep"))} ${theme.fg("accent", `/${pattern}/`)}`;
-		text += theme.fg("toolOutput", ` in ${path}`);
-		if (glob) {
-			text += theme.fg("toolOutput", ` (${glob})`);
-		}
-		if (limit !== undefined) {
-			text += theme.fg("toolOutput", ` limit ${limit}`);
-		}
-
-		return new Text(text, 0, 0);
-	};
-
-	const grepCustomRenderResult = (result: any, { expanded }: { expanded: boolean }, theme: any) => {
-		if (!defaultStyleMode && !expanded) {
-			return renderCount(result as any, "matches", theme);
-		}
-		return renderOutput(getTextContent(result as any), expanded, theme, { collapsedLines: 15 });
-	};
-
-	const lsCustomRenderCall = (args: any, theme: any) => {
-		const path = shortenPath(args.path || ".");
-		const limit = args.limit;
-
-		let text = `${theme.fg("toolTitle", theme.bold("ls"))} ${theme.fg("accent", path)}`;
-		if (limit !== undefined) {
-			text += theme.fg("toolOutput", ` (limit ${limit})`);
-		}
-
-		return new Text(text, 0, 0);
-	};
-
-	const lsCustomRenderResult = (result: any, { expanded }: { expanded: boolean }, theme: any) => {
-		if (!defaultStyleMode && !expanded) {
-			return renderCount(result as any, "entries", theme);
-		}
-		return renderOutput(getTextContent(result as any), expanded, theme, { collapsedLines: 20 });
-	};
-
 	const readTool: any = {
 		name: "read",
 		label: "read",
@@ -337,54 +258,6 @@ export default function (pi: ExtensionAPI) {
 		renderResult: editCustomRenderResult,
 	};
 
-	const findTool: any = {
-		name: "find",
-		label: "find",
-		description:
-			"Find files by name pattern (glob). Searches recursively from the specified path. Output limited to 200 results.",
-		parameters: getBuiltInTools(process.cwd()).find.parameters,
-
-		async execute(toolCallId: string, params: any, signal: AbortSignal, onUpdate: any, ctx: any) {
-			const tools = getBuiltInTools(ctx.cwd);
-			return tools.find.execute(toolCallId, params, signal, onUpdate);
-		},
-
-		renderCall: findCustomRenderCall,
-		renderResult: findCustomRenderResult,
-	};
-
-	const grepTool: any = {
-		name: "grep",
-		label: "grep",
-		description:
-			"Search file contents by regex pattern. Uses ripgrep for fast searching. Output limited to 200 matches.",
-		parameters: getBuiltInTools(process.cwd()).grep.parameters,
-
-		async execute(toolCallId: string, params: any, signal: AbortSignal, onUpdate: any, ctx: any) {
-			const tools = getBuiltInTools(ctx.cwd);
-			return tools.grep.execute(toolCallId, params, signal, onUpdate);
-		},
-
-		renderCall: grepCustomRenderCall,
-		renderResult: grepCustomRenderResult,
-	};
-
-	const lsTool: any = {
-		name: "ls",
-		label: "ls",
-		description:
-			"List directory contents with file sizes. Shows files and directories with their sizes. Output limited to 500 entries.",
-		parameters: getBuiltInTools(process.cwd()).ls.parameters,
-
-		async execute(toolCallId: string, params: any, signal: AbortSignal, onUpdate: any, ctx: any) {
-			const tools = getBuiltInTools(ctx.cwd);
-			return tools.ls.execute(toolCallId, params, signal, onUpdate);
-		},
-
-		renderCall: lsCustomRenderCall,
-		renderResult: lsCustomRenderResult,
-	};
-
 	const toggleRenderMode = (ctx: any) => {
 		defaultStyleMode = !defaultStyleMode;
 		ctx.ui.notify(`pi-mintools: ${defaultStyleMode ? "default-style" : "minimal"} mode`, "info");
@@ -404,7 +277,4 @@ export default function (pi: ExtensionAPI) {
 	}
 	pi.registerTool(writeTool);
 	pi.registerTool(editTool);
-	pi.registerTool(findTool);
-	pi.registerTool(grepTool);
-	pi.registerTool(lsTool);
 }
